@@ -8,33 +8,25 @@ class Fixed32Bit
 {
 public:
     T val;
-    std::vector<uint8_t> encoded;
 
-    void encodeValue() {
+    void encodeValue(std::vector<uint8_t> & bufferToPushBackEncoded) {
         assert(sizeof(val) == 4);
-
-        encoded.clear();
 
         uint8_t* ptr = (uint8_t*)&val;
 
         for (size_t i = 0; i < 4; i++)
-        {
-            encoded.push_back(*ptr);
-            ptr++;
-        }
+            bufferToPushBackEncoded.push_back(*(ptr++));
     }
 
-    int decodeValue() {
+    void decodeValue(std::vector<uint8_t> & bufferToPopBackEncoded) {
         val = {};
 
         uint8_t* ptr = (uint8_t*)&val;
 
         for (size_t i = 0; i < 4; i++)
-        {
-            *ptr = encoded[i];
-            ptr++;
-        }
-        return 4;
+            *(ptr++) = bufferToPopBackEncoded[bufferToPopBackEncoded.size() - 4 + i];
+   
+        bufferToPopBackEncoded.resize(bufferToPopBackEncoded.size() - 4);
     }
 };
 
@@ -43,33 +35,25 @@ class Fixed64Bit
 {
 public:
     T val;
-    std::vector<uint8_t> encoded;
 
-    void encodeValue() {
+    void encodeValue(std::vector<uint8_t>& bufferToPushBackEncoded) {
         assert(sizeof(val) == 8);
-
-        encoded.clear();
 
         uint8_t* ptr = (uint8_t*)&val;
 
         for (size_t i = 0; i < 8; i++)
-        {
-            encoded.push_back(*ptr);
-            ptr++;
-        }
+            bufferToPushBackEncoded.push_back(*(ptr++));
     }
 
-    int decodeValue() {
+    void decodeValue(std::vector<uint8_t>& bufferToPopBackEncoded) {
         val = {};
 
         uint8_t* ptr = (uint8_t*)&val;
 
         for (size_t i = 0; i < 8; i++)
-        {
-            *ptr = encoded[i];
-            ptr++;
-        }
-        return 8;
+            *(ptr++) = bufferToPopBackEncoded[bufferToPopBackEncoded.size() - 8 + i];
+
+        bufferToPopBackEncoded.resize(bufferToPopBackEncoded.size() - 8);
     }
 };
 
@@ -78,7 +62,6 @@ class VarInt
 {
 public:
     T val;
-    std::vector<uint8_t> encoded;
 
     enum IntType
     {
@@ -92,8 +75,7 @@ public:
 
     IntType valType;
 
-    void encodeValue() {
-        encoded.clear();
+    void encodeValue(std::vector<uint8_t>& bufferToPushBackEncoded) {
 
         uint64_t temp = (valType == INT64 || valType == SINT64 || valType == UINT64) ? static_cast<uint64_t>(val) : static_cast<uint32_t>(val);
 
@@ -102,36 +84,40 @@ public:
                 temp = 2 * (llabs(val)) - 1;
             else
                 temp = temp << 1;
-
         }
 
+        int firstBytePos = bufferToPushBackEncoded.size();
+        
         do {
-            encoded.push_back(temp % 128);
-            encoded[encoded.size() - 1] |= 128;
+            bufferToPushBackEncoded.push_back(temp % 128);
+            bufferToPushBackEncoded[bufferToPushBackEncoded.size() - 1] |= 128;
 
             temp /= 128;
         } while (temp != 0);
 
-        encoded[encoded.size() - 1] &= 127;
+        bufferToPushBackEncoded[firstBytePos] &= 127;
     }
 
-    int decodeValue() {
+    void decodeValue(std::vector<uint8_t>& bufferToPopBackEncoded) {
         val = {};
-        int res = 0;
+        int res = 1;
         uint64_t temp = 0;
 
-        for (res = 0; res < encoded.size(); res++) {
-            temp |= (uint64_t((encoded[res] % 128)) << (7 * res));
-            if ((encoded[res] & 128) == 0)
+        for (res = 1; res <= bufferToPopBackEncoded.size(); res++) 
+            if ((bufferToPopBackEncoded[bufferToPopBackEncoded.size() - res] & 128) == 0)
                 break;
-        }
+
+        for (int i = 0; i < res; i++) 
+            temp |= (uint64_t((bufferToPopBackEncoded[bufferToPopBackEncoded.size() - res + i] % 128)) << (7 * i));
+
         val = static_cast<T>(temp);
 
         if (valType == SINT32 || valType == SINT64)
             temp = (temp / 2 + temp % 2) * (-1 + 2 * (temp % 2 == 0));
 
         val = static_cast<T>(temp);
-        return res + 1;
+
+        bufferToPopBackEncoded.resize(bufferToPopBackEncoded.size() - res);
     }
 
 };
@@ -140,31 +126,29 @@ class Len
 {
 public:
     std::vector<uint8_t> val;
-    VarInt<uint32_t> length;
-    std::vector<uint8_t> encoded;
+    VarInt<uint64_t> length;
 
-    void encodeValue() {
+    void encodeValue(std::vector<uint8_t>& bufferToPushBackEncoded) {
 
-        VarInt<uint32_t> resultSize;
+        VarInt<uint64_t> resultSize;
         resultSize.val = val.size();
-        resultSize.valType = VarInt<uint32_t>::IntType::UINT32;
-        resultSize.encodeValue();
+        resultSize.valType = VarInt<uint64_t>::IntType::UINT64;
 
-        encoded.insert(encoded.begin(), val.begin(), val.end());
-        encoded.insert(encoded.begin(), resultSize.encoded.begin(), resultSize.encoded.end());
+        bufferToPushBackEncoded.insert(bufferToPushBackEncoded.end(), val.begin(), val.end());
+        resultSize.encodeValue(bufferToPushBackEncoded);
     }
 
-    int decodeValue() {
+    void decodeValue(std::vector<uint8_t>& bufferToPopBackEncoded) {
         val.clear();
 
-        VarInt<uint32_t> resultSize;
-        resultSize.valType = VarInt<uint32_t>::IntType::UINT32;
-        resultSize.encoded = encoded;
-        int lenLen = resultSize.decodeValue();
+        VarInt<uint64_t> resultSize;
+        resultSize.valType = VarInt<uint64_t>::IntType::UINT64;
+        
+        resultSize.decodeValue(bufferToPopBackEncoded);
 
         for (size_t i = 0; i < resultSize.val; i++)
-            val.push_back(encoded[lenLen + i]);
+            val.push_back(bufferToPopBackEncoded[bufferToPopBackEncoded.size() - (resultSize.val) + i]);
 
-        return lenLen + val.size();
+        bufferToPopBackEncoded.resize(bufferToPopBackEncoded.size() - val.size());
     }
 };
