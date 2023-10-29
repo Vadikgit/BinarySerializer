@@ -1,19 +1,18 @@
-#include "test.h"
+#include "testStrArr.h"
 
 #include "types.h"
 
 
-namespace test {
+namespace testStrArr {
 
 // ----- ar
-std::vector<std::sint64> & ar::ref_arr(){
+std::vector<int64_t> & ar::ref_arr(){
 	return arr;
 }
 
 size_t ar::encode_arr(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){
 	for (size_t i = 0; i < arr.size(); i++)
-		pos = arr[(arr.size() - 1) - i].encode_sint64(bufferToPushBackEncoded, pos);
-	
+		pos = encodeVarInt(IntType::SINT64, (uint8_t*)& arr[(arr.size() - 1) - i], bufferToPushBackEncoded, pos);
 	uint32_t sz = arr.size();
 
 return encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);
@@ -26,8 +25,7 @@ size_t ar::decode_arr(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos)
 	arr.resize(sz);
 
 	for (size_t i = 0; i < sz; i++)
-		pos = arr[i].decode_sint64(bufferToPopBackEncoded, pos);
-	
+		pos = decodeVarInt(IntType::SINT64, (uint8_t*)& arr[i], bufferToPopBackEncoded, pos);
 
 return pos;
 }

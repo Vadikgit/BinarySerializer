@@ -1,5 +1,28 @@
 filename test
 
 t_class ar {
-t_array t_f_int64 arr
+t_array t_string arr
+}
+
+t_class cl1 {
+t_f_int64 f64
+}
+
+t_class cl2 {
+t_f_int32 f32
+cl1 memberCl1
+t_v_int64 v64
+t_array t_string arr
+t_array cl1 arrCl1
+}
+
+t_class cl3 {
+cl1 memberCl1
+cl2 memberCl2
+t_v_int64 v64
+t_v_int32 v32
+t_float fl
+t_double dbl
+t_string str
+t_v_sint64 s64
 }
