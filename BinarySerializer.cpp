@@ -9,7 +9,8 @@
 #include <unordered_map>
 #include <algorithm>
 
-class SchemaFileProcessor {
+class SchemaFileProcessor
+{
 public:
 	std::string filename;
 	std::string printedPublic;
@@ -18,8 +19,8 @@ public:
 	const std::string fileNameMarker = "filename";
 	const std::string typeMarker = "t_";
 	const std::string commentMarker = "#";
-	bool fileNameRetrieved;
-	
+	bool fileNameRetrieved = false;
+
 	std::ofstream cppFile;
 	std::ofstream hFile;
 
@@ -33,29 +34,29 @@ public:
 
 	enum types
 	{
-		T_V_INT32,   // varint
-		T_V_SINT32,  // varint
-		T_V_UINT32,  // varint
-		T_V_INT64,   // varint
-		T_V_SINT64,  // varint
-		T_V_UINT64,  // varint
+		T_V_INT32,	// varint
+		T_V_SINT32, // varint
+		T_V_UINT32, // varint
+		T_V_INT64,	// varint
+		T_V_SINT64, // varint
+		T_V_UINT64, // varint
 
-		T_F_INT32,   // 32bit
-		T_F_UINT32,  // 32bit
-		T_FLOAT,     // 32bit
+		T_F_INT32,	// 32bit
+		T_F_UINT32, // 32bit
+		T_FLOAT,	// 32bit
 
-		T_F_INT64,   // 64bit
-		T_F_UINT64,  // 64bit
-		T_DOUBLE,    // 64bit
+		T_F_INT64,	// 64bit
+		T_F_UINT64, // 64bit
+		T_DOUBLE,	// 64bit
 
-		T_ARRAY,     // len
-		T_STRING,    // len
-		T_CLASS,     // len
+		T_ARRAY,  // len
+		T_STRING, // len
+		T_CLASS,  // len
 	};
-
 };
 
-void SchemaFileProcessor::processEndOfClassDefinition() {
+void SchemaFileProcessor::processEndOfClassDefinition()
+{
 	hFile << printedPublic << "};\n";
 
 	// encoding
@@ -71,13 +72,14 @@ void SchemaFileProcessor::processEndOfClassDefinition() {
 	cppFile << "\n\treturn pos;}\n";
 }
 
-void SchemaFileProcessor::processFilename(std::string_view str) {
+void SchemaFileProcessor::processFilename(std::string_view str)
+{
 	str.remove_prefix(fileNameMarker.length() + 1);
 	filename = str;
 
 	cppFile.open((filename + ".cpp").c_str());
 	hFile.open((filename + ".h").c_str());
-	
+
 	fileNameRetrieved = true;
 
 	hFile << "#pragma once\n";
@@ -92,10 +94,11 @@ void SchemaFileProcessor::processFilename(std::string_view str) {
 	cppFile << "\n\nnamespace " << filename << " {\n";
 }
 
-void SchemaFileProcessor::processField(std::string_view str) {
+void SchemaFileProcessor::processField(std::string_view str)
+{
 	auto typeStrEnd = str.find(' ');
 	auto typeStr = str.substr(0, typeStrEnd);
-	
+
 	str.remove_prefix(typeStrEnd + 1);
 
 	auto nameStr = str;
@@ -123,7 +126,8 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("();\n");
-		cppFile << "\n" << cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+		cppFile << "\n"
+				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(cppTypeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
@@ -135,7 +139,6 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		// decoding
 		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 		cppFile << "\treturn decodeFixed" << typeStr.substr(typeStr.length() - 2, 2) << "Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
-	
 	}
 
 	else if (typeStr.starts_with("t_v_s"))
@@ -148,7 +151,8 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("();\n");
-		cppFile << "\n" << cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+		cppFile << "\n"
+				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(cppTypeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
@@ -160,7 +164,6 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		// decoding
 		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 		cppFile << "\treturn decodeVarInt(IntType::SINT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
-
 	}
 
 	else if (typeStr.starts_with("t_v_"))
@@ -173,7 +176,8 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("();\n");
-		cppFile << "\n" << cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+		cppFile << "\n"
+				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(cppTypeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
@@ -185,8 +189,6 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		// decoding
 		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 		cppFile << "\treturn decodeVarInt(IntType::INT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
-
-
 	}
 
 	else if (typeStr == "t_float" || typeStr == "t_double")
@@ -195,12 +197,13 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		hFile << "\t" << typeStr << " " << nameStr << ";\n";
 
 		printedPublic.append("\t").append(typeStr).append(" get_").append(nameStr).append("();\n");
-		cppFile << "\n" << typeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+		cppFile << "\n"
+				<< typeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(typeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << typeStr << " v){\n\t" << nameStr << " = v;\n}\n";
 
-		//encoding
+		// encoding
 		if (typeStr == "float")
 		{
 			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
@@ -230,19 +233,18 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		hFile << "\t" << typeStr << " " << nameStr << ";\n";
 
 		printedPublic.append("\t").append(typeStr).append(" & ref_").append(nameStr).append("();\n");
-		cppFile << "\n" << typeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+		cppFile << "\n"
+				<< typeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
-
-		//encoding
+		// encoding
 		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
 		cppFile << "\treturn " << nameStr << ".encode_" << typeStr << "(bufferToPushBackEncoded, pos);\n}\n";
 
 		// decoding
 		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 		cppFile << "\treturn " << nameStr << ".decode_" << typeStr << "(bufferToPopBackEncoded, pos);\n}\n";
-
 	}
-	
+
 	else if (typeStr == "t_array")
 	{
 		std::string cppTypeStr = "std::vector<";
@@ -252,34 +254,33 @@ void SchemaFileProcessor::processField(std::string_view str) {
 
 		if (arrType == "t_v_int32" || arrType == "t_v_sint32" || arrType == "t_v_uint32" ||
 			arrType == "t_v_int64" || arrType == "t_v_sint64" || arrType == "t_v_uint64")
-		{	
+		{
 			arrType.remove_prefix(std::string("t_v_").length());
-			
+
 			std::string enumVal = std::string(arrType);
 			std::transform(enumVal.begin(), enumVal.end(), enumVal.begin(), ::toupper);
 
 			enumVal = (enumVal.starts_with('U') ? enumVal.substr(1) : enumVal);
 
 			arrType = (arrType.starts_with('s') ? arrType.substr(1) : arrType);
-			
-			cppTypeStr += (std::string(arrType) + std::string("_t>"));
 
+			cppTypeStr += (std::string(arrType) + std::string("_t>"));
 
 			hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 			printedPublic.append("\t").append(cppTypeStr).append(" & ref_").append(nameStr).append("();\n");
-			cppFile << "\n" << cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+			cppFile << "\n"
+					<< cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
-			//encoding
+			// encoding
 			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tpos = encodeVarInt(IntType::" << enumVal << ", (uint8_t*)& "<< nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded, pos);"; 
+			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tpos = encodeVarInt(IntType::" << enumVal << ", (uint8_t*)& " << nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded, pos);";
 			cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
-			
+
 			// decoding
 			cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 			cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tpos = decodeVarInt(IntType::" << enumVal << ", (uint8_t*)& " << nameStr << "[i], bufferToPopBackEncoded, pos);";
 			cppFile << "\n\nreturn pos;\n}\n";
-
 		}
 		else if (arrType == "t_f_int32" || arrType == "t_f_uint32" || arrType == "t_float" ||
 				 arrType == "t_f_int64" || arrType == "t_f_uint64" || arrType == "t_double")
@@ -295,11 +296,12 @@ void SchemaFileProcessor::processField(std::string_view str) {
 			hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 			printedPublic.append("\t").append(cppTypeStr).append(" & ref_").append(nameStr).append("();\n");
-			cppFile << "\n" << cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+			cppFile << "\n"
+					<< cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 			auto bits = (arrType.ends_with("32") || arrType == "float") ? "32" : "64";
 
-			//encoding
+			// encoding
 			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
 			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tpos = encodeFixed" << bits << "Bit((uint8_t*)& " << nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded, pos);";
 			cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
@@ -308,12 +310,12 @@ void SchemaFileProcessor::processField(std::string_view str) {
 			cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 			cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tpos = decodeFixed" << bits << "Bit((uint8_t*)& " << nameStr << "[i], bufferToPopBackEncoded, pos);";
 			cppFile << "\n\nreturn pos;\n}\n";
-
 		}
 		else // string, class
 		{
-			
-			if (arrType.starts_with("t_")) {
+
+			if (arrType.starts_with("t_"))
+			{
 				arrType.remove_prefix(std::string("t_").length());
 				cppTypeStr += "std::";
 			}
@@ -322,12 +324,11 @@ void SchemaFileProcessor::processField(std::string_view str) {
 
 			nameStr.remove_prefix(nameStr.find(' ') + 1);
 
-
-
 			hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 			printedPublic.append("\t").append(cppTypeStr).append(" & ref_").append(nameStr).append("();\n");
-			cppFile << "\n" << cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+			cppFile << "\n"
+					<< cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 			if (arrType == "string")
 			{
@@ -352,7 +353,7 @@ void SchemaFileProcessor::processField(std::string_view str) {
 				cppFile << "\tLen Smth;\n\Smth.encoded = data;\n\tint res = Smth.decodeValue();\n\t";
 				cppFile << "for (int i = 0; i < Smth.val.size(); i++)\n\t\t" << nameStr << ".append(1, char(Smth.val[i]));\n\treturn res;\n}\n";*/
 
-				//encoding
+				// encoding
 				cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
 				cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++){\n\t\tuint32_t tmpsz = " << nameStr << "[(" << nameStr << ".size() - 1) - i].length();\n\tfor(size_t j = 0; j < tmpsz; j++)" << "\n\t\tbufferToPushBackEncoded[pos++] = " << nameStr << "[(" << nameStr << ".size() - 1) - i][j];\n\tpos = encodeVarInt(IntType::INT32, (uint8_t*)&tmpsz, bufferToPushBackEncoded, pos);\n\t}";
 				cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
@@ -361,7 +362,6 @@ void SchemaFileProcessor::processField(std::string_view str) {
 				cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
 				cppFile << "\n\tuint32_t sz; \n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos); \n\t" << nameStr << ".resize(sz); \n\n\tfor(size_t i = 0; i < sz; i++){\n\t\tuint32_t tmpsz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&tmpsz, bufferToPopBackEncoded, pos);\n\t" << nameStr << "[i].resize(tmpsz);\n\tfor(size_t j = 0; j < tmpsz; j++)\n\t\t" << nameStr << "[i][tmpsz - j - 1] = bufferToPopBackEncoded[pos--];\n\t}";
 				cppFile << "\n\nreturn pos;\n}\n";
-
 			}
 			else
 			{
@@ -376,7 +376,6 @@ void SchemaFileProcessor::processField(std::string_view str) {
 				cppFile << "\n\nreturn pos;\n}\n";
 			}
 		}
-	
 	}
 
 	else if (typeStr == "t_string")
@@ -386,9 +385,10 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
 		printedPublic.append("\t").append(cppTypeStr).append(" & ref_").append(nameStr).append("();\n");
-		cppFile << "\n" << cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+		cppFile << "\n"
+				<< cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
-		//encoding
+		// encoding
 		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
 		cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".length(); i++)\n\t\tbufferToPushBackEncoded[pos++] = " << nameStr << "[(" << nameStr << ".length() - 1) - i];";
 		cppFile << "\n\tuint32_t sz = " << nameStr << ".length();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
@@ -398,7 +398,6 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz); \n\n\tfor(size_t i = 0; i < sz; i++)\n\t\t" << nameStr << "[i] = bufferToPopBackEncoded[pos--];\n\t";
 		cppFile << "\n\nreturn pos;\n}\n";
 	}
-
 
 	if (typeStr != "t_class")
 	{
@@ -413,14 +412,13 @@ void SchemaFileProcessor::processField(std::string_view str) {
 		printedPublic.append("\tsize_t encode_").append(nameStr).append("(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos);\n");
 		printedPublic.append("\tsize_t decode_").append(nameStr).append("(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos);\n\n");
 	}
-
 }
 
-int main(int argc, char ** argv)
+int main(int argc, char **argv)
 {
 	std::string schemeFileName = (argc < 2) ? "schema.bs" : std::string(argv[1]);
 
-    std::ifstream inf(schemeFileName);
+	std::ifstream inf(schemeFileName);
 
 	SchemaFileProcessor processor;
 
@@ -437,12 +435,13 @@ int main(int argc, char ** argv)
 			if (processor.fileNameRetrieved == false && curStrView.starts_with(processor.fileNameMarker) == true)
 				processor.processFilename(curStrView);
 
-			if (curStr.starts_with(processor.typeMarker) || 
+			if (curStr.starts_with(processor.typeMarker) ||
 				processor.definedClasses.find(curStr.substr(0, curStr.find(' '))) != processor.definedClasses.end())
-				 processor.processField(curStrView);
+				processor.processField(curStrView);
 
-			if (curStr.starts_with("}")) {
-				
+			if (curStr.starts_with("}"))
+			{
+
 				processor.processEndOfClassDefinition();
 			}
 			std::cout << curStr << '\n';
