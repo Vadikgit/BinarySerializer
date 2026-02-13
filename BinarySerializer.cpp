@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <algorithm>
+#include <stdio.h>
+#include <cstdio>
 
 class SchemaFileProcessor
 {
@@ -60,16 +62,16 @@ void SchemaFileProcessor::processEndOfClassDefinition()
 	hFile << printedPublic << "};\n";
 
 	// encoding
-	cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << currentDescribingClassName << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n\n";
+	cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << currentDescribingClassName << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n\n";
 	for (size_t i = 0; i < fieldsOfCurrentClass.size(); i++)
-		cppFile << "\tpos = encode_" << fieldsOfCurrentClass[i] << "(bufferToPushBackEncoded, pos);\n";
-	cppFile << "\n\treturn pos;\n}\n";
+		cppFile << "\tencode_" << fieldsOfCurrentClass[i] << "(bufferToPushBackEncoded);\n";
+	cppFile << "\n}\n";
 
 	// decoding
-	cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << currentDescribingClassName << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
+	cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << currentDescribingClassName << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
 	for (int i = fieldsOfCurrentClass.size() - 1; i >= 0; i--)
-		cppFile << "\tpos = decode_" << fieldsOfCurrentClass[i] << "(bufferToPopBackEncoded, pos);\n";
-	cppFile << "\n\treturn pos;}\n";
+		cppFile << "\tdecode_" << fieldsOfCurrentClass[i] << "(bufferToPopBackEncoded, pos);\n";
+	cppFile << "\n}\n";
 }
 
 void SchemaFileProcessor::processFilename(std::string_view str)
@@ -133,12 +135,12 @@ void SchemaFileProcessor::processField(std::string_view str)
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
 
 		// encoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-		cppFile << "\treturn encodeFixed" << typeStr.substr(typeStr.length() - 2, 2) << "Bit((uint8_t *)&" << nameStr << ", bufferToPushBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+		cppFile << "\tencodeFixed" << typeStr.substr(typeStr.length() - 2, 2) << "Bit((uint8_t *)&" << nameStr << ", bufferToPushBackEncoded);\n}\n";
 
 		// decoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-		cppFile << "\treturn decodeFixed" << typeStr.substr(typeStr.length() - 2, 2) << "Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+		cppFile << "\tdecodeFixed" << typeStr.substr(typeStr.length() - 2, 2) << "Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
 	}
 
 	else if (typeStr.starts_with("t_v_s"))
@@ -158,12 +160,12 @@ void SchemaFileProcessor::processField(std::string_view str)
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
 
 		// encoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-		cppFile << "\treturn encodeVarInt(IntType::SINT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPushBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+		cppFile << "\tencodeVarInt(IntType::SINT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPushBackEncoded);\n}\n";
 
 		// decoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-		cppFile << "\treturn decodeVarInt(IntType::SINT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+		cppFile << "\tdecodeVarInt(IntType::SINT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
 	}
 
 	else if (typeStr.starts_with("t_v_"))
@@ -183,12 +185,12 @@ void SchemaFileProcessor::processField(std::string_view str)
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
 
 		// encoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-		cppFile << "\treturn encodeVarInt(IntType::INT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPushBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+		cppFile << "\tencodeVarInt(IntType::INT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPushBackEncoded);\n}\n";
 
 		// decoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-		cppFile << "\treturn decodeVarInt(IntType::INT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+		cppFile << "\tdecodeVarInt(IntType::INT" << cppTypeStr.substr(cppTypeStr.length() - 4, 2) << ", (uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
 	}
 
 	else if (typeStr == "t_float" || typeStr == "t_double")
@@ -206,25 +208,25 @@ void SchemaFileProcessor::processField(std::string_view str)
 		// encoding
 		if (typeStr == "float")
 		{
-			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-			cppFile << "\treturn encodeFixed32Bit((uint8_t *)&" << nameStr << ", bufferToPushBackEncoded, pos);\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+			cppFile << "\tencodeFixed32Bit((uint8_t *)&" << nameStr << ", bufferToPushBackEncoded);\n}\n";
 		}
 		else
 		{
-			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-			cppFile << "\treturn encodeFixed64Bit((uint8_t *)&" << nameStr << ", bufferToPushBackEncoded, pos);\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+			cppFile << "\tencodeFixed64Bit((uint8_t *)&" << nameStr << ", bufferToPushBackEncoded);\n}\n";
 		}
 
 		// decoding
 		if (typeStr == "float")
 		{
-			cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-			cppFile << "\treturn decodeFixed32Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+			cppFile << "\tdecodeFixed32Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
 		}
 		else
 		{
-			cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-			cppFile << "\treturn decodeFixed64Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+			cppFile << "\tdecodeFixed64Bit((uint8_t *)&" << nameStr << ", bufferToPopBackEncoded, pos);\n}\n";
 		}
 	}
 
@@ -237,12 +239,12 @@ void SchemaFileProcessor::processField(std::string_view str)
 				<< typeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 		// encoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-		cppFile << "\treturn " << nameStr << ".encode_" << typeStr << "(bufferToPushBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+		cppFile << "\t" << nameStr << ".encode_" << typeStr << "(bufferToPushBackEncoded);\n}\n";
 
 		// decoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-		cppFile << "\treturn " << nameStr << ".decode_" << typeStr << "(bufferToPopBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+		cppFile << "\t" << nameStr << ".decode_" << typeStr << "(bufferToPopBackEncoded, pos);\n}\n";
 	}
 
 	else if (typeStr == "t_array")
@@ -273,14 +275,14 @@ void SchemaFileProcessor::processField(std::string_view str)
 					<< cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 			// encoding
-			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tpos = encodeVarInt(IntType::" << enumVal << ", (uint8_t*)& " << nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded, pos);";
-			cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tencodeVarInt(IntType::" << enumVal << ", (uint8_t*)& " << nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded);";
+			cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nencodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded);\n}\n";
 
 			// decoding
-			cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-			cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tpos = decodeVarInt(IntType::" << enumVal << ", (uint8_t*)& " << nameStr << "[i], bufferToPopBackEncoded, pos);";
-			cppFile << "\n\nreturn pos;\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+			cppFile << "\n\tuint32_t sz;\n\tdecodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tdecodeVarInt(IntType::" << enumVal << ", (uint8_t*)& " << nameStr << "[i], bufferToPopBackEncoded, pos);";
+			cppFile << "\n}\n";
 		}
 		else if (arrType == "t_f_int32" || arrType == "t_f_uint32" || arrType == "t_float" ||
 				 arrType == "t_f_int64" || arrType == "t_f_uint64" || arrType == "t_double")
@@ -302,14 +304,14 @@ void SchemaFileProcessor::processField(std::string_view str)
 			auto bits = (arrType.ends_with("32") || arrType == "float") ? "32" : "64";
 
 			// encoding
-			cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tpos = encodeFixed" << bits << "Bit((uint8_t*)& " << nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded, pos);";
-			cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+			cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tencodeFixed" << bits << "Bit((uint8_t*)& " << nameStr << "[(" << nameStr << ".size() - 1) - i], bufferToPushBackEncoded);";
+			cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nencodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded);\n}\n";
 
 			// decoding
-			cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-			cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tpos = decodeFixed" << bits << "Bit((uint8_t*)& " << nameStr << "[i], bufferToPopBackEncoded, pos);";
-			cppFile << "\n\nreturn pos;\n}\n";
+			cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+			cppFile << "\n\tuint32_t sz;\n\tdecodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tdecodeFixed" << bits << "Bit((uint8_t*)& " << nameStr << "[i], bufferToPopBackEncoded, pos);";
+			cppFile << "\n}\n";
 		}
 		else // string, class
 		{
@@ -354,26 +356,26 @@ void SchemaFileProcessor::processField(std::string_view str)
 				cppFile << "for (int i = 0; i < Smth.val.size(); i++)\n\t\t" << nameStr << ".append(1, char(Smth.val[i]));\n\treturn res;\n}\n";*/
 
 				// encoding
-				cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-				cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++){\n\t\tuint32_t tmpsz = " << nameStr << "[(" << nameStr << ".size() - 1) - i].length();\n\tfor(size_t j = 0; j < tmpsz; j++)" << "\n\t\tbufferToPushBackEncoded[pos++] = " << nameStr << "[(" << nameStr << ".size() - 1) - i][j];\n\tpos = encodeVarInt(IntType::INT32, (uint8_t*)&tmpsz, bufferToPushBackEncoded, pos);\n\t}";
-				cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
+				cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+				cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++){\n\t\tuint32_t tmpsz = " << nameStr << "[(" << nameStr << ".size() - 1) - i].length();\n\tfor(size_t j = 0; j < tmpsz; j++)" << "\n\t\tbufferToPushBackEncoded.push_back(" << nameStr << "[(" << nameStr << ".size() - 1) - i][j]);\n\tencodeVarInt(IntType::INT32, (uint8_t*)&tmpsz, bufferToPushBackEncoded);\n\t}";
+				cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nencodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded);\n}\n";
 
 				// decoding
-				cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-				cppFile << "\n\tuint32_t sz; \n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos); \n\t" << nameStr << ".resize(sz); \n\n\tfor(size_t i = 0; i < sz; i++){\n\t\tuint32_t tmpsz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&tmpsz, bufferToPopBackEncoded, pos);\n\t" << nameStr << "[i].resize(tmpsz);\n\tfor(size_t j = 0; j < tmpsz; j++)\n\t\t" << nameStr << "[i][tmpsz - j - 1] = bufferToPopBackEncoded[pos--];\n\t}";
-				cppFile << "\n\nreturn pos;\n}\n";
+				cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+				cppFile << "\n\tuint32_t sz; \n\tdecodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos); \n\t" << nameStr << ".resize(sz); \n\n\tfor(size_t i = 0; i < sz; i++){\n\t\tuint32_t tmpsz;\n\tdecodeVarInt(IntType::INT32, (uint8_t*)&tmpsz, bufferToPopBackEncoded, pos);\n\t" << nameStr << "[i].resize(tmpsz);\n\tfor(size_t j = 0; j < tmpsz; j++)\n\t\t" << nameStr << "[i][tmpsz - j - 1] = bufferToPopBackEncoded[pos--];\n\t}";
+				cppFile << "\n}\n";
 			}
 			else
 			{
 				// encoding
-				cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-				cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\tpos = " << nameStr << "[(" << nameStr << ".size() - 1) - i].encode_" << arrType << "(bufferToPushBackEncoded, pos);\n\t";
-				cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
+				cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+				cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".size(); i++)\n\t\t" << nameStr << "[(" << nameStr << ".size() - 1) - i].encode_" << arrType << "(bufferToPushBackEncoded);\n\t";
+				cppFile << "\n\tuint32_t sz = " << nameStr << ".size();\n\nencodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded);\n}\n";
 
 				// decoding
-				cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-				cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\tpos = " << nameStr << "[i].decode_" << arrType << "(bufferToPopBackEncoded, pos);\n\t";
-				cppFile << "\n\nreturn pos;\n}\n";
+				cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+				cppFile << "\n\tuint32_t sz;\n\tdecodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz);\n\n\tfor (size_t i = 0; i < sz; i++)\n\t\t" << nameStr << "[i].decode_" << arrType << "(bufferToPopBackEncoded, pos);\n\t";
+				cppFile << "\n}\n";
 			}
 		}
 	}
@@ -389,14 +391,14 @@ void SchemaFileProcessor::processField(std::string_view str)
 				<< cppTypeStr << " & " << currentDescribingClassName << "::ref_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
 
 		// encoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos){\n";
-		cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".length(); i++)\n\t\tbufferToPushBackEncoded[pos++] = " << nameStr << "[(" << nameStr << ".length() - 1) - i];";
-		cppFile << "\n\tuint32_t sz = " << nameStr << ".length();\n\nreturn encodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded, pos);\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded){\n";
+		cppFile << "\tfor (size_t i = 0; i < " << nameStr << ".length(); i++)\n\t\tbufferToPushBackEncoded.push_back(" << nameStr << "[(" << nameStr << ".length() - 1) - i]);";
+		cppFile << "\n\tuint32_t sz = " << nameStr << ".length();\n\nencodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPushBackEncoded);\n}\n";
 
 		// decoding
-		cppFile << "\nsize_t " << currentDescribingClassName << "::decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos){\n";
-		cppFile << "\n\tuint32_t sz;\n\tpos = decodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz); \n\n\tfor(size_t i = 0; i < sz; i++)\n\t\t" << nameStr << "[i] = bufferToPopBackEncoded[pos--];\n\t";
-		cppFile << "\n\nreturn pos;\n}\n";
+		cppFile << "\nvoid " << currentDescribingClassName << "::decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos){\n";
+		cppFile << "\n\tuint32_t sz;\n\tdecodeVarInt(IntType::INT32, (uint8_t*)&sz, bufferToPopBackEncoded, pos);\n\t" << nameStr << ".resize(sz); \n\n\tfor(size_t i = 0; i < sz; i++)\n\t\t" << nameStr << "[i] = bufferToPopBackEncoded[pos--];\n\t";
+		cppFile << "\n}\n";
 	}
 
 	if (typeStr != "t_class")
@@ -404,13 +406,19 @@ void SchemaFileProcessor::processField(std::string_view str)
 		fieldsOfCurrentClass.emplace(currentClassId, nameStr);
 		currentClassId++;
 
-		hFile << "\tsize_t encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos);\n";
-		hFile << "\tsize_t decode_" << nameStr << "(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos);\n\n";
+		// encoding
+		hFile << "\tvoid encode_" << nameStr << "(std::vector<uint8_t> & bufferToPushBackEncoded);\n";
+
+		// decoding
+		hFile << "\tvoid decode_" << nameStr << "(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos);\n\n";
 	}
 	else
 	{
-		printedPublic.append("\tsize_t encode_").append(nameStr).append("(std::vector<uint8_t> & bufferToPushBackEncoded, size_t pos);\n");
-		printedPublic.append("\tsize_t decode_").append(nameStr).append("(std::vector<uint8_t> & bufferToPopBackEncoded, size_t pos);\n\n");
+		// encoding
+		printedPublic.append("\tvoid encode_").append(nameStr).append("(std::vector<uint8_t> & bufferToPushBackEncoded);\n");
+
+		// decoding
+		printedPublic.append("\tvoid decode_").append(nameStr).append("(const std::vector<uint8_t> & bufferToPopBackEncoded, size_t & pos);\n\n");
 	}
 }
 
@@ -422,8 +430,8 @@ int main(int argc, char **argv)
 
 	SchemaFileProcessor processor;
 
-	std::string curStr;
-	std::string_view curStrView;
+	std::string curStr{};
+	std::string_view curStrView{};
 
 	while (inf)
 	{
