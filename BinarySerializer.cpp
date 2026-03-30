@@ -127,9 +127,9 @@ void SchemaFileProcessor::processField(std::string_view str)
 
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
-		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("();\n");
+		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("() const;\n");
 		cppFile << "\n"
-				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "() const {\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(cppTypeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
@@ -152,9 +152,9 @@ void SchemaFileProcessor::processField(std::string_view str)
 
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
-		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("();\n");
+		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("() const;\n");
 		cppFile << "\n"
-				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "() const {\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(cppTypeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
@@ -177,9 +177,9 @@ void SchemaFileProcessor::processField(std::string_view str)
 
 		hFile << "\t" << cppTypeStr << " " << nameStr << ";\n";
 
-		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("();\n");
+		printedPublic.append("\t").append(cppTypeStr).append(" get_").append(nameStr).append("() const;\n");
 		cppFile << "\n"
-				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+				<< cppTypeStr << " " << currentDescribingClassName << "::get_" << nameStr << "() const {\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(cppTypeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << cppTypeStr << " v){\n\t" << nameStr << " = v;\n}\n";
@@ -198,9 +198,9 @@ void SchemaFileProcessor::processField(std::string_view str)
 		typeStr.remove_prefix(typeMarker.length());
 		hFile << "\t" << typeStr << " " << nameStr << ";\n";
 
-		printedPublic.append("\t").append(typeStr).append(" get_").append(nameStr).append("();\n");
+		printedPublic.append("\t").append(typeStr).append(" get_").append(nameStr).append("() const;\n");
 		cppFile << "\n"
-				<< typeStr << " " << currentDescribingClassName << "::get_" << nameStr << "(){\n\treturn " << nameStr << ";\n}\n";
+				<< typeStr << " " << currentDescribingClassName << "::get_" << nameStr << "() const {\n\treturn " << nameStr << ";\n}\n";
 
 		printedPublic.append("\tvoid set_").append(nameStr).append("(").append(typeStr).append(");\n");
 		cppFile << "\nvoid " << currentDescribingClassName << "::set_" << nameStr << "(" << typeStr << " v){\n\t" << nameStr << " = v;\n}\n";
