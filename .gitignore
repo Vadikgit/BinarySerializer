@@ -1,13 +1,11 @@
-# Codegen dir
-codegen/*
-
-# Test build dir
-test/build/*
+# Build dir
+build/*
 
 # Generated test files
 test/test.cpp
 test/test.h
 test/types.h
+test/test
 
 # Prerequisites
 *.d
